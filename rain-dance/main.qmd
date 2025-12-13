@@ -8,13 +8,125 @@ format:
     code-fold: false
     code-tools: true
 ---
+<!-- # FIGURE TEMPLATE -->
+<!-- # ```{python} -->
+<!-- # #| label:       FIGURE_LABEL -->
+<!-- # #| fig-cap:     FIGURE_CAPTION -->
+<!-- # #| fig-subcap: -->
+<!-- # #|    - "SUBFIG CAP #1" -->
+<!-- # #|    - "SUBFIG CAP #2" -->
+<!-- # #| layout-nrow: -->
+<!-- # #| -->
+<!-- # #| layout-ncol: -->
+<!-- #  -->
+<!-- # fig = plt.figure() -->
+<!-- # plt.plot(YOU_KNOW_WHAT_GOES_HERE, "-") -->
+<!-- # plt.xlim((-1., 1.)) -->
+<!-- # plt.ylim((-2., 2.)) -->
+<!-- # plt.xlabel("") -->
+<!-- # plt.ylabel("") -->
+<!-- # plt.title("Plot title here.") -->
+<!-- # plt.grid(True) -->
+<!-- # ``` -->
 
 # The News Website Who Cried Rain
 The problem is that without fail, I will fall for each and every article that
 tells me rain is expected today.
+
+![](./media/ted-mosby.jpg)
+
 I have been here 6 years and I've filled in more mm of precipitation from my
 tears.
 
 Let's actually call them out on this:
 An un-named gulf news source vs the NOAA Climate Data Online historic data
 summary from Jan. 1, 2020 until Aug. 24, 2025.
+
+```{python}
+import polars as pl
+import matplotlib.pyplot as plt
+
+from datetime import datetime
+
+DATA_SRC = "../dataset/4186532.csv"
+
+"""
+output of `head ../dataset/4186532.csv`
+"STATION","NAME","DATE","PRCP"
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-01",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-02",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-03",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-04",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-05",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-06",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-07",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-08",
+"AEM00041217","ABU DHABI INTERNATIONAL, AE","2020-01-09",
+"""
+DATA_DTYPE = {
+  "STATION": pl.Utf8,
+  "NAME": pl.Utf8,
+  "DATE": pl.Datetime,
+  "PRCP": pl.Float32
+}
+```
+
+Let's read this into a dataframe and plot all the times it's rained in the last
+6 years.
+
+```{python}
+plt.style.use("../computermodern.mplstyle")
+
+df = pl.read_csv(
+  DATA_SRC, separator=',', has_header=True, schema_overrides=DATA_DTYPE
+)
+# Fill in the empty prcp columns with zeros
+df = df.with_columns(
+  pl.col("PRCP").fill_null(0)
+)
+```
+```{python}
+#| label:       Precipitation Over Jan. 1, 2020 - Aug. 24, 2025
+#| fig-cap:     Precipitation Over Jan. 1, 2020 - Aug. 24, 2025
+
+fig = plt.figure(dpi=180)
+plt.plot(df["DATE"], df["PRCP"])
+plt.title("Precip. over 6-ish years")
+rain_day_2024 = df.filter(
+  pl.col("DATE") == datetime(2024, 4, 16)
+).head(1)
+plt.axvspan(xmin=datetime(2024,1,1), xmax=datetime(2024, 5, 1), color="#6400ff", alpha=0.3, label="Most rain ever,\n Spring 2024")
+plt.annotate(
+  text="That day it rained so hard\neverything blew away in the wind.\nApr. 16, 2024",
+  xy=(rain_day_2024["DATE"][0], rain_day_2024["PRCP"][0]),
+  xytext=(datetime(2022, 1, 1), 40),
+  arrowprops=dict(arrowstyle="->")
+)
+plt.xlabel("Date")
+plt.ylabel("Precipitation (mm)")
+plt.legend()
+plt.grid(True)
+```
+
+### SO, according to NASA, how many times has it rained over the last 6-ish years?
+```{python}
+rained_days = df.filter(
+  pl.col("PRCP") > 0.0
+)
+
+pl.Config.set_tbl_rows(30)
+pl.Config.set_tbl_cols(20)
+pl.Config.set_tbl_width_chars(140)
+pl.Config.set_tbl_formatting("ASCII_MARKDOWN")
+pl.Config.set_fmt_str_lengths(80)
+pl.Config.set_float_precision(3)
+
+print(rained_days.select(["NAME", "DATE", "PRCP"]))
+print(f"\n\nOver the period of time between "
+      f"{df['DATE'].head(1)[0]} and "
+      f"{df['DATE'].tail(1)[0]}..."
+      f"({len(df['DATE']):,} days),"
+      "\nIt has rained a total of "
+      f"{rained_days.shape[0]} times."
+)
+```
