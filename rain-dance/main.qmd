@@ -1,0 +1,20 @@
+---
+title: Rain Dance
+theme: "cerulean"
+highlight-style: github
+author: github.com/temataro
+format:
+  html:
+    code-fold: false
+    code-tools: true
+---
+
+# The News Website Who Cried Rain
+The problem is that without fail, I will fall for each and every article that
+tells me rain is expected today.
+I have been here 6 years and I've filled in more mm of precipitation from my
+tears.
+
+Let's actually call them out on this:
+An un-named gulf news source vs the NOAA Climate Data Online historic data
+summary from Jan. 1, 2020 until Aug. 24, 2025.
