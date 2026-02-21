@@ -5,7 +5,7 @@ highlight-style: github
 author: github.com/temataro
 format:
   html:
-    code-fold: false
+    code-fold: true
     code-tools: true
 ---
 <!-- # FIGURE TEMPLATE -->
@@ -129,4 +129,36 @@ print(f"\n\nOver the period of time between "
       "\nIt has rained a total of "
       f"{rained_days.shape[0]} times."
 )
+```
+
+## The problem
+
+According to news websites whose names I won't mention *ahem* *ahem* rhymes
+with _shmulf bews_ *ahem* *ahem*, I should expect rain almost once a week!
+I should be expecting it in the middle of Abu Dhabi July and packing a jacket
+just in case! I should be cancelling outdoor dates and carrying my umbrella
+everywhere I go... yeah sure.
+
+
+SO, let's learn how to (hopefully ethically) scrape their news articles for
+mentions of rain over the current decade and come up with a percentage
+likelihood for how much rain we're expected to see according to each article
+that mentions rain.
+
+The sitemap for gulfnews.com looks like this:
+`https://gulfnews.com/sitemap/sitemap-daily-2026-02-21.xml`
+
+Each day, an entry.
+I just need to extract the contents of each day's headlines and filter for
+keywords like 'rain', 'rainfall', 'precipitation', etc. and then save articles
+that match into a jsonl file sorted by month.
+
+After python-ing with gpt5 on opencode using xmls and beautifulsoup4, I get something that looks like
+this:
+```
+{"url": "https://gulfnews.com/world/asia/india/india-pm-narendra-modi-to-contest-from-varanasi-as-bjp-kickstarts-poll-campaign-1.1709408251331", "lastmod": "2024-03-02", "title": "India PM Narendra Modi to contest from Varanasi as BJP kickstarts poll campaign", "title_matches_keywords": false, "text": null}
+{"url": "https://gulfnews.com/world/mena/us-military-begins-air-dropping-aid-to-gaza-1.1709404935406", "lastmod": "2024-03-02", "title": "US military begins air-dropping aid to Gaza", "title_matches_keywords": false, "text": null}
+{"url": "https://gulfnews.com/business/wtos-13th-ministerial-conference-a-major-milestone-to-develop-the-global-trade-system-says-chairman-of-added-1.1709401457798", "lastmod": "2024-03-02", "title": "WTO\u2019s 13th Ministerial Conference a major milestone to develop the global trade system, says chairman of ADDED", "title_matches_keywords": false, "text": null}
+{"url": "https://gulfnews.com/photos/news/pictures-inaugural-edition-of-gulf-news-edufair-schools--nurseries-kicks-off-in-dubai-1.1709397569879", "lastmod": "2024-03-03", "title": "Pictures: Inaugural edition of Gulf News Edufair Schools & Nurseries kicks off in Dubai", "title_matches_keywords": false, "text": null}
+{"url": "https://gulfnews.com/uae/weather/uae-weather-update-rain-thunder-and-lightning-expected-to-hit-the-country-starting-monday-1.1709394185115", "lastmod": "2024-03-03", "title": "UAE weather update: Rain, thunder and lightning expected to hit the country starting Monday", "title_matches_keywords": true, "text": "Abu Dhabi: The National Center of Meteorology (NCM) has stated that the UAE is being affected by a surface low-pressure system extending from the Southwest, accompanied by a cold air mass from the West in the upper atmosphere, resulting in a flow of clouds..On Monday and Tuesday, cloud cover is expected to gradually increase from the afternoon into the evening from the West, extending across scattered areas of the country. This will be accompanied by convective clouds, associated with rainfall of varying intensities, and at times heavy with lightning and thunder in some areas..Click here to get exclusive content with Gulf News WhatsApp channel.By Wednesday, the amount of clouds and rainfall is forecast to decrease. However, the weather is expected to remain partly cloudy to cloudy at times, particularly in southern regions, with a decrease in temperatures..The sea conditions are expected to be moderate to rough, especially with the presence of convective clouds in the Arabian Gulf and the Oman Sea."}
 ```
