@@ -1,5 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import random
 import re
+import threading
+import time
 import xml.etree.ElementTree as ET
 
 import requests
@@ -40,6 +44,23 @@ class SitemapEntry:
         self.lastmod = lastmod
 
 
+class RequestThrottle:
+    def __init__(self, min_interval_s=1.0, jitter_s=0.0):
+        self.min_interval_s = min_interval_s
+        self.jitter_s = jitter_s
+        self._lock = threading.Lock()
+        self._next_allowed = 0.0
+
+    def wait(self):
+        with self._lock:
+            now = time.monotonic()
+            delay = self._next_allowed - now
+            if delay > 0:
+                time.sleep(delay)
+            jitter = random.uniform(0, self.jitter_s) if self.jitter_s else 0.0
+            self._next_allowed = time.monotonic() + self.min_interval_s + jitter
+
+
 def fetch_text(url, *, timeout_s=30):
     response = requests.get(
         url,
@@ -49,6 +70,12 @@ def fetch_text(url, *, timeout_s=30):
     response.raise_for_status()
 
     return response.text
+
+
+def throttled_fetch_text(url, *, timeout_s=30, throttle=None):
+    if throttle is not None:
+        throttle.wait()
+    return fetch_text(url, timeout_s=timeout_s)
 
 
 def parse_date(value):
@@ -172,6 +199,9 @@ def extract_sitemap_urls_to_jsonl(
     output_root=OUTPUT_ROOT,
     request_delay_s=0.5,
     force=False,
+    max_workers=2,
+    min_interval_s=1.0,
+    jitter_s=0.2,
 ):
     output_path = None
     header = (
@@ -185,50 +215,50 @@ def extract_sitemap_urls_to_jsonl(
     #    "https://gulfnews.com/sitemap/sitemap-daily-2026-02-21.xml"
     prefix = "https://gulfnews.com/sitemap/sitemap-daily"
 
-    current_date = parse_date(start_date)
     end = parse_date(end_date)
+    throttle = RequestThrottle(min_interval_s=min_interval_s, jitter_s=jitter_s)
+    print_lock = threading.Lock()
 
-    while current_date < end:
+    def log_line(message, *, end="\n"):
+        with print_lock:
+            print(message, end=end, flush=True)
+
+    def process_day(current_date):
         sitemap_url = f"{prefix}-{current_date.isoformat()}.xml"
         sitemap_date = current_date.isoformat()
-        output_path = output_path_for_sitemap(sitemap_date, output_root=output_root)
-        # This prevents us from re-bothering the server for data we've already
-        # collected, unless the force option is passed.
-        if output_path.exists() and not force:
-            return output_path
+        day_output_path = output_path_for_sitemap(sitemap_date, output_root=output_root)
+        if day_output_path.exists() and not force:
+            return day_output_path
 
-        xml_text = fetch_text(sitemap_url)
+        xml_text = throttled_fetch_text(sitemap_url, throttle=throttle)
         entries = parse_sitemap(xml_text)
         total = len(entries)
         counter = 0
-        print(
+        log_line(
             f"{ANSI_INFO}[INFO]{ANSI_RESET} "
             f"Date: {ANSI_BOLD}{sitemap_date}{ANSI_RESET} | "
-            f"Entries: {ANSI_BOLD}{total}{ANSI_RESET}",
-            flush=True,
+            f"Entries: {ANSI_BOLD}{total}{ANSI_RESET}"
         )
 
-        # Make a different JSONL for each month of entries that've been filtered
-        # through.
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        day_output_path.parent.mkdir(parents=True, exist_ok=True)
 
         matches = 0
-        with output_path.open("w", encoding="utf-8") as handle:
+        with day_output_path.open("w", encoding="utf-8") as handle:
             for entry in entries:
                 counter += 1
                 progress = f"{counter}/{total}" if total else "0/0"
-                print(
-                    f"\r{ANSI_FETCH}[FETCH]{ANSI_RESET} "
-                    f"{ANSI_BOLD}{progress}{ANSI_RESET} "
-                    f"{ANSI_DIM}{current_date}{ANSI_RESET}",
-                    end="",
-                    flush=True,
-                )
-                html_text = fetch_text(entry.url)
+                if max_workers <= 1:
+                    log_line(
+                        f"\r{ANSI_FETCH}[FETCH]{ANSI_RESET} "
+                        f"{ANSI_BOLD}{progress}{ANSI_RESET} "
+                        f"{ANSI_DIM}{current_date}{ANSI_RESET}",
+                        end="",
+                    )
+                html_text = throttled_fetch_text(entry.url, throttle=throttle)
                 soup = BeautifulSoup(html_text, "html.parser")
                 title = extract_title(soup)
                 if title == "":
-                    print(f"\n{ANSI_WARN}[WARN]{ANSI_RESET} Empty title", flush=True)
+                    log_line(f"\n{ANSI_WARN}[WARN]{ANSI_RESET} Empty title")
                 matched = title_matches_keywords(title)
                 if matched:
                     matches += 1
@@ -251,12 +281,25 @@ def extract_sitemap_urls_to_jsonl(
                 )
                 if request_delay_s:
                     sleep(request_delay_s)
-            print(
-                f"\r{ANSI_DONE}[DONE]{ANSI_RESET} Day complete with #{matches=}",
-                flush=True,
-            )
+            log_line(f"\r{ANSI_DONE}[DONE]{ANSI_RESET} Day complete with #{matches=}")
 
+        return day_output_path
+
+    current_date = parse_date(start_date)
+    dates = []
+    while current_date < end:
+        dates.append(current_date)
         current_date += timedelta(days=1)
+
+    if max_workers <= 1:
+        for current_date in dates:
+            output_path = process_day(current_date)
+        return output_path
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_day, day) for day in dates]
+        for future in as_completed(futures):
+            output_path = future.result()
 
     return output_path
 

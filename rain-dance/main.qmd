@@ -364,6 +364,7 @@ def extract_sitemap_urls_to_jsonl(
     return output_path
 ```
 
+<<<<<<< HEAD
 What we end up with is a directory tree full of jsonl files
 ```
 data
@@ -397,7 +398,6 @@ def iter_jsonl_lines(path):
             line = line.strip()
             if line:
                 yield lineno, line
-
 
 def filter_jsonl_file(src, dst, field):
     dst.parent.mkdir(parents=True, exist_ok=True)
