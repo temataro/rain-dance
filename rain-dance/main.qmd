@@ -160,5 +160,136 @@ this:
 {"url": "https://gulfnews.com/world/mena/us-military-begins-air-dropping-aid-to-gaza-1.1709404935406", "lastmod": "2024-03-02", "title": "US military begins air-dropping aid to Gaza", "title_matches_keywords": false, "text": null}
 {"url": "https://gulfnews.com/business/wtos-13th-ministerial-conference-a-major-milestone-to-develop-the-global-trade-system-says-chairman-of-added-1.1709401457798", "lastmod": "2024-03-02", "title": "WTO\u2019s 13th Ministerial Conference a major milestone to develop the global trade system, says chairman of ADDED", "title_matches_keywords": false, "text": null}
 {"url": "https://gulfnews.com/photos/news/pictures-inaugural-edition-of-gulf-news-edufair-schools--nurseries-kicks-off-in-dubai-1.1709397569879", "lastmod": "2024-03-03", "title": "Pictures: Inaugural edition of Gulf News Edufair Schools & Nurseries kicks off in Dubai", "title_matches_keywords": false, "text": null}
-{"url": "https://gulfnews.com/uae/weather/uae-weather-update-rain-thunder-and-lightning-expected-to-hit-the-country-starting-monday-1.1709394185115", "lastmod": "2024-03-03", "title": "UAE weather update: Rain, thunder and lightning expected to hit the country starting Monday", "title_matches_keywords": true, "text": "Abu Dhabi: The National Center of Meteorology (NCM) has stated that the UAE is being affected by a surface low-pressure system extending from the Southwest, accompanied by a cold air mass from the West in the upper atmosphere, resulting in a flow of clouds..On Monday and Tuesday, cloud cover is expected to gradually increase from the afternoon into the evening from the West, extending across scattered areas of the country. This will be accompanied by convective clouds, associated with rainfall of varying intensities, and at times heavy with lightning and thunder in some areas..Click here to get exclusive content with Gulf News WhatsApp channel.By Wednesday, the amount of clouds and rainfall is forecast to decrease. However, the weather is expected to remain partly cloudy to cloudy at times, particularly in southern regions, with a decrease in temperatures..The sea conditions are expected to be moderate to rough, especially with the presence of convective clouds in the Arabian Gulf and the Oman Sea."}
+{"url":
+"https://gulfnews.com/uae/weather/uae-weather-update-rain-thunder-and-lightning-expected-to-hit-the-country-starting-monday-1.1709394185115",
+"lastmod": "2024-03-03", "title": "UAE weather update: Rain, thunder and
+lightning expected to hit the country starting Monday",
+"title_matches_keywords": true, "text": "Abu Dhabi: The National Center of
+Meteorology (NCM) has stated that the UAE is being affected by a surface
+low-pressure system extending from the Southwest, accompanied by a cold air
+mass from the West in the upper atmosphere, resulting in a flow of clouds..On
+Monday and Tuesday, cloud cover is expected to gradually increase from the
+afternoon into the evening from the West, extending across scattered areas of
+the country. This will be accompanied by convective clouds, associated with
+rainfall of varying intensities, and at times heavy with lightning and thunder
+in some areas..Click here to get exclusive content with Gulf News WhatsApp
+channel.By Wednesday, the amount of clouds and rainfall is forecast to
+decrease. However, the weather is expected to remain partly cloudy to cloudy at
+times, particularly in southern regions, with a decrease in temperatures..The
+sea conditions are expected to be moderate to rough, especially with the
+presence of convective clouds in the Arabian Gulf and the Oman Sea."}
 ```
+
+For each url found in the day's sitemap, we skim the title to see if anything
+relates to weather. If it does, go to the url and extract the article body to
+form this jsonl file. The format looks like this:
+
+
+The main function in charge of doing this is `def extract_sitemap_urls_to_jsonl()` in `../main.py`
+```{python}
+#| code-fold: true
+#| eval: false
+
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from main import *
+def extract_sitemap_urls_to_jsonl(
+    start_date,
+    end_date,
+    output_root=OUTPUT_ROOT,
+    request_delay_s=0.5,
+    force=False,
+):
+    output_path = None
+    header = (
+        f"{ANSI_INFO}╔══════════════════════════════════════════════╗{ANSI_RESET}\n"
+        f"{ANSI_INFO}║{ANSI_RESET} {ANSI_BOLD}Gulf News Extraction Console{ANSI_RESET}           {ANSI_INFO}║{ANSI_RESET}\n"
+        f"{ANSI_INFO}╚══════════════════════════════════════════════╝{ANSI_RESET}"
+    )
+    print(header, flush=True)
+
+    # We'll generate a sitemap url based on the format of the website:
+    #    "https://gulfnews.com/sitemap/sitemap-daily-2026-02-21.xml"
+    prefix = "https://gulfnews.com/sitemap/sitemap-daily"
+
+    current_date = parse_date(start_date)
+    end = parse_date(end_date)
+
+    while current_date < end:
+        sitemap_url = f"{prefix}-{current_date.isoformat()}.xml"
+        sitemap_date = current_date.isoformat()
+        output_path = output_path_for_sitemap(sitemap_date, output_root=output_root)
+        # This prevents us from re-bothering the server for data we've already
+        # collected, unless the force option is passed.
+        if output_path.exists() and not force:
+            return output_path
+
+        xml_text = fetch_text(sitemap_url)
+        entries = parse_sitemap(xml_text)
+        total = len(entries)
+        counter = 0
+        print(
+            f"{ANSI_INFO}[INFO]{ANSI_RESET} "
+            f"Date: {ANSI_BOLD}{sitemap_date}{ANSI_RESET} | "
+            f"Entries: {ANSI_BOLD}{total}{ANSI_RESET}",
+            flush=True,
+        )
+
+        # Make a different JSONL for each month of entries that've been filtered
+        # through.
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        matches = 0
+        with output_path.open("w", encoding="utf-8") as handle:
+            for entry in entries:
+                counter += 1
+                progress = f"{counter}/{total}" if total else "0/0"
+                print(
+                    f"\r{ANSI_FETCH}[FETCH]{ANSI_RESET} "
+                    f"{ANSI_BOLD}{progress}{ANSI_RESET} "
+                    f"{ANSI_DIM}{current_date}{ANSI_RESET}",
+                    end="",
+                    flush=True,
+                )
+                html_text = fetch_text(entry.url)
+                soup = BeautifulSoup(html_text, "html.parser")
+                title = extract_title(soup)
+                if title == "":
+                    print(f"\n{ANSI_WARN}[WARN]{ANSI_RESET} Empty title", flush=True)
+                matched = title_matches_keywords(title)
+                if matched:
+                    matches += 1
+                    article_text = extract_article_text(soup)
+                else:
+                    article_text = None
+                handle.write(
+                    json.dumps(
+                        {
+                            "url": entry.url,
+                            "lastmod": (
+                                entry.lastmod.isoformat() if entry.lastmod else None
+                            ),
+                            "title": title,
+                            "title_matches_keywords": matched,
+                            "text": article_text,
+                        }
+                    )
+                    + "\n"
+                )
+                if request_delay_s:
+                    sleep(request_delay_s)
+            print(
+                f"\r{ANSI_DONE}[DONE]{ANSI_RESET} Day complete with #{matches=}",
+                flush=True,
+            )
+
+        current_date += timedelta(days=1)
+
+    return output_path
+```
+
+
+

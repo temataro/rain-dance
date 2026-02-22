@@ -1,6 +1,5 @@
 import json
 import re
-import sys
 import xml.etree.ElementTree as ET
 
 import requests
@@ -180,8 +179,7 @@ def extract_sitemap_urls_to_jsonl(
         f"{ANSI_INFO}║{ANSI_RESET} {ANSI_BOLD}Gulf News Extraction Console{ANSI_RESET}           {ANSI_INFO}║{ANSI_RESET}\n"
         f"{ANSI_INFO}╚══════════════════════════════════════════════╝{ANSI_RESET}"
     )
-    sys.stdout.write(f"{header}\n")
-    sys.stdout.flush()
+    print(header, flush=True)
 
     # We'll generate a sitemap url based on the format of the website:
     #    "https://gulfnews.com/sitemap/sitemap-daily-2026-02-21.xml"
@@ -203,12 +201,12 @@ def extract_sitemap_urls_to_jsonl(
         entries = parse_sitemap(xml_text)
         total = len(entries)
         counter = 0
-        sys.stdout.write(
+        print(
             f"{ANSI_INFO}[INFO]{ANSI_RESET} "
             f"Date: {ANSI_BOLD}{sitemap_date}{ANSI_RESET} | "
-            f"Entries: {ANSI_BOLD}{total}{ANSI_RESET}\n"
+            f"Entries: {ANSI_BOLD}{total}{ANSI_RESET}",
+            flush=True,
         )
-        sys.stdout.flush()
 
         # Make a different JSONL for each month of entries that've been filtered
         # through.
@@ -219,17 +217,18 @@ def extract_sitemap_urls_to_jsonl(
             for entry in entries:
                 counter += 1
                 progress = f"{counter}/{total}" if total else "0/0"
-                sys.stdout.write(
+                print(
                     f"\r{ANSI_FETCH}[FETCH]{ANSI_RESET} "
                     f"{ANSI_BOLD}{progress}{ANSI_RESET} "
-                    f"{ANSI_DIM}{current_date}{ANSI_RESET}"
+                    f"{ANSI_DIM}{current_date}{ANSI_RESET}",
+                    end="",
+                    flush=True,
                 )
-                sys.stdout.flush()
                 html_text = fetch_text(entry.url)
                 soup = BeautifulSoup(html_text, "html.parser")
                 title = extract_title(soup)
                 if title == "":
-                    sys.stdout.write(f"\n{ANSI_WARN}[WARN]{ANSI_RESET} Empty title\n")
+                    print(f"\n{ANSI_WARN}[WARN]{ANSI_RESET} Empty title", flush=True)
                 matched = title_matches_keywords(title)
                 if matched:
                     matches += 1
@@ -252,8 +251,10 @@ def extract_sitemap_urls_to_jsonl(
                 )
                 if request_delay_s:
                     sleep(request_delay_s)
-            sys.stdout.write(f"\r{ANSI_DONE}[DONE]{ANSI_RESET} Day complete with #{matches=} \n")
-            sys.stdout.flush()
+            print(
+                f"\r{ANSI_DONE}[DONE]{ANSI_RESET} Day complete with #{matches=}",
+                flush=True,
+            )
 
         current_date += timedelta(days=1)
 
@@ -262,8 +263,8 @@ def extract_sitemap_urls_to_jsonl(
 
 def main():
     extract_sitemap_urls_to_jsonl(
-        start_date="2024-03-02",
-        end_date="2024-06-24",
+        start_date="2020-01-01",
+        end_date="2026-01-01",
     )
 
 
