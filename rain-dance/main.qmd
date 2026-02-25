@@ -457,7 +457,7 @@ def filter_jsonls(
         f"out: {out_root}"
     )
 
-filter_jsonls()
+# filter_jsonls()
 ```
 
 Then let's plot
@@ -600,10 +600,10 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
     if peak_date:
         print(f"Peak day: {peak_date} ({peak})")
 
-plot_counts_of_rain(
-        root_unfilt="../data/gulfnews/articles",
-        root_filt="../data/gulfnews/articles.filtered",
-        out="rain-dance/media/gulfnews-articles-per-day.png"
-)
+# plot_counts_of_rain(
+#         root_unfilt="../data/gulfnews/articles",
+#         root_filt="../data/gulfnews/articles.filtered",
+#         out="rain-dance/media/gulfnews-articles-per-day.png"
+# )  # Not actually running this for the website, data isn't on gh!
 
 ```
