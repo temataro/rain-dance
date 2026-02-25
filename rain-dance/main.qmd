@@ -45,6 +45,7 @@ summary from Jan. 1, 2020 until Aug. 24, 2025.
 ```{python}
 import polars as pl
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 from datetime import datetime
 
@@ -71,11 +72,85 @@ DATA_DTYPE = {
 }
 ```
 
+```{python}
+#| code-fold: true
+# Since I can't use a custom local mplstyle file, let's specify all our RC
+# Params here:
+import matplotlib as mpl
+
+RC_PARAMS = {
+    # Axes
+    "axes.titlesize": "large",
+    "axes.labelsize": "large",
+    "axes.formatter.use_mathtext": True,
+
+    # Lines / patches
+    "lines.linewidth": 1.0,
+    "lines.markersize": 10,
+    "hatch.linewidth": 0.25,
+    "patch.antialiased": True,
+
+    # Ticks
+    "xtick.top": False,
+    "xtick.bottom": True,
+    "xtick.major.size": 4.0,
+    "xtick.minor.size": 2.0,
+    "xtick.major.width": 0.5,
+    "xtick.minor.width": 0.5,
+    "xtick.direction": "out",
+    "xtick.minor.visible": True,
+    "xtick.major.top": False,
+    "xtick.major.bottom": True,
+    "xtick.minor.top": False,
+    "xtick.minor.bottom": True,
+    "xtick.major.pad": 5.0,
+    "xtick.minor.pad": 5.0,
+    "xtick.labelsize": "large",
+
+    "ytick.labelsize": "large",
+    "ytick.left": True,
+    "ytick.right": False,
+    "ytick.major.size": 4.0,
+    "ytick.minor.size": 2.0,
+    "ytick.major.width": 0.5,
+    "ytick.minor.width": 0.5,
+    "ytick.direction": "out",
+    "ytick.minor.visible": True,
+    "ytick.major.left": True,
+    "ytick.major.right": False,
+    "ytick.minor.left": True,
+    "ytick.minor.right": False,
+    "ytick.major.pad": 5.0,
+    "ytick.minor.pad": 5.0,
+
+    # Legend
+    "legend.frameon": True,
+    "legend.fontsize": 12,
+    "legend.loc": "upper right",
+
+    # Figure layout
+    "figure.autolayout": False,
+    "figure.constrained_layout.w_pad": 0.01,
+    "figure.constrained_layout.h_pad": 0.01,
+
+    # Fonts
+    "mathtext.fontset": "cm",
+    "font.family": "serif",
+    "font.serif": ["cmr10"],
+    "font.sans-serif": ["cmr10"],
+
+    # Saving figures
+    "path.simplify": True,
+}
+
+mpl.rcParams.update(RC_PARAMS)
+
+```
+
 Let's read this into a dataframe and plot all the times it's rained in the last
 6 years.
 
 ```{python}
-plt.style.use("../computermodern.mplstyle")
 
 df = pl.read_csv(
   DATA_SRC, separator=',', has_header=True, schema_overrides=DATA_DTYPE
@@ -121,7 +196,7 @@ pl.Config.set_tbl_formatting("ASCII_MARKDOWN")
 pl.Config.set_fmt_str_lengths(80)
 pl.Config.set_float_precision(3)
 
-print(rained_days.select(["NAME", "DATE", "PRCP"]))
+# print(rained_days.select(["NAME", "DATE", "PRCP"]))
 print(f"\n\nOver the period of time between "
       f"{df['DATE'].head(1)[0]} and "
       f"{df['DATE'].tail(1)[0]}..."
@@ -155,16 +230,14 @@ that match into a jsonl file sorted by month.
 
 After python-ing with gpt5 on opencode using xmls and beautifulsoup4, I get something that looks like
 this:
-```
-{"url": "https://gulfnews.com/world/asia/india/india-pm-narendra-modi-to-contest-from-varanasi-as-bjp-kickstarts-poll-campaign-1.1709408251331", "lastmod": "2024-03-02", "title": "India PM Narendra Modi to contest from Varanasi as BJP kickstarts poll campaign", "title_matches_keywords": false, "text": null}
-{"url": "https://gulfnews.com/world/mena/us-military-begins-air-dropping-aid-to-gaza-1.1709404935406", "lastmod": "2024-03-02", "title": "US military begins air-dropping aid to Gaza", "title_matches_keywords": false, "text": null}
-{"url": "https://gulfnews.com/business/wtos-13th-ministerial-conference-a-major-milestone-to-develop-the-global-trade-system-says-chairman-of-added-1.1709401457798", "lastmod": "2024-03-02", "title": "WTO\u2019s 13th Ministerial Conference a major milestone to develop the global trade system, says chairman of ADDED", "title_matches_keywords": false, "text": null}
-{"url": "https://gulfnews.com/photos/news/pictures-inaugural-edition-of-gulf-news-edufair-schools--nurseries-kicks-off-in-dubai-1.1709397569879", "lastmod": "2024-03-03", "title": "Pictures: Inaugural edition of Gulf News Edufair Schools & Nurseries kicks off in Dubai", "title_matches_keywords": false, "text": null}
+
+
+::: {.callout-note}
 {"url":
 "https://gulfnews.com/uae/weather/uae-weather-update-rain-thunder-and-lightning-expected-to-hit-the-country-starting-monday-1.1709394185115",
-"lastmod": "2024-03-03", "title": "UAE weather update: Rain, thunder and
+"lastmod": "2024-03-03", "title": "UAE weather update: Rain, thunder and \
 lightning expected to hit the country starting Monday",
-"title_matches_keywords": true, "text": "Abu Dhabi: The National Center of
+"title_matches_keywords": true, "text": """Abu Dhabi: The National Center of
 Meteorology (NCM) has stated that the UAE is being affected by a surface
 low-pressure system extending from the Southwest, accompanied by a cold air
 mass from the West in the upper atmosphere, resulting in a flow of clouds..On
@@ -177,8 +250,8 @@ channel.By Wednesday, the amount of clouds and rainfall is forecast to
 decrease. However, the weather is expected to remain partly cloudy to cloudy at
 times, particularly in southern regions, with a decrease in temperatures..The
 sea conditions are expected to be moderate to rough, especially with the
-presence of convective clouds in the Arabian Gulf and the Oman Sea."}
-```
+presence of convective clouds in the Arabian Gulf and the Oman Sea."""}
+:::
 
 For each url found in the day's sitemap, we skim the title to see if anything
 relates to weather. If it does, go to the url and extract the article body to
@@ -291,5 +364,246 @@ def extract_sitemap_urls_to_jsonl(
     return output_path
 ```
 
+What we end up with is a directory tree full of jsonl files
+```
+data
+└── gulfnews
+    └── articles
+        ├── 2020-01
+        │   ├── sitemap-2020-01-01.jsonl
+```
+This process is very slow since we're fetching each url from each day one at a
+time, we can parallelize this process by using threads or asyncio _but_ we
+shouldn't do that wantonly.
+Hitting a news site with dozens of requests per second is not very polite and
+respectful. So instead, we're going to parallelize ethically by limiting our
+overall HTTP calls.
+
+We want to now do some analysis on the article text and title.
+
+# Some Statistics
+Let's start with a simple frequency count on how many times rain has been
+mentioned over this decade. To do this, we'll first filter out all the JSONL
+logs to only those that have their `title_matches_keywords` == true.
+
+How do we filter?
+Let's make a script to take all the jsonl logs and filter them out to leave
+only the ones with our keywords.
+```{python}
+
+def iter_jsonl_lines(path):
+    with path.open("r", encoding="utf-8") as handle:
+        for lineno, line in enumerate(handle, start=1):
+            line = line.strip()
+            if line:
+                yield lineno, line
 
 
+def filter_jsonl_file(src, dst, field):
+    dst.parent.mkdir(parents=True, exist_ok=True)
+
+    kept = 0
+    total = 0
+    bad = 0
+
+    tmp = dst.with_suffix(dst.suffix + ".tmp")
+
+    with tmp.open("w", encoding="utf-8") as out:
+        for lineno, line in iter_jsonl_lines(src):
+            total += 1
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                bad += 1
+                continue
+
+            if bool(obj.get(field)) is True:
+                out.write(line)
+                out.write("\n")
+                kept += 1
+
+    tmp.replace(dst)
+    return kept, total, bad
+
+
+from pathlib import Path
+def filter_jsonls(
+    src_root = Path("data/gulfnews/articles"),
+    out_root = Path("data/gulfnews/articles.filtered"),
+    field= "title_matches_keywords",
+    ):
+    total_files = 0
+    total_lines = 0
+    total_kept = 0
+    total_bad = 0
+
+    files = sorted(src_root.glob("**/*.jsonl"))
+
+    for src in files:
+        if not src.is_file():
+            continue
+        rel = src.relative_to(src_root)
+        dst = out_root / rel
+        kept, total, bad = filter_jsonl_file(src, dst, args.field)
+
+        total_files += 1
+        total_lines += total
+        total_kept += kept
+        total_bad += bad
+
+    print(
+        f"Processed {total_files} files | "
+        f"lines: {total_lines} | kept: {total_kept} | bad_json: {total_bad} | "
+        f"out: {out_root}"
+    )
+
+filter_jsonls()
+```
+
+Then let's plot
+```{python}
+#| out-width: "100%"
+#| label:       Occurrence count for articles mentioning rain
+#| fig-cap:     Occurrence count for articles mentioning rain
+#| code-fold: true
+
+from datetime import date, datetime, timedelta
+
+
+
+def parse_date(value):
+    if value is None:
+        return None
+    return date.fromisoformat(value)
+
+
+def date_from_filename(path):
+    name = path.name
+    date_part = name.replace("sitemap-", "").replace(".jsonl", "")
+    return date.fromisoformat(date_part)
+
+
+def count_jsonl_lines(path):
+    count = 0
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                count += 1
+    return count
+
+
+def daterange(start, end):
+    current = start
+    while current <= end:
+        yield current
+        current += timedelta(days=1)
+
+
+def rolling_mean(values, window):
+    if window <= 1:
+        return list(values)
+    result = []
+    running = 0
+    for idx, value in enumerate(values):
+        running += value
+        if idx >= window:
+            running -= values[idx - window]
+            result.append(running / window)
+        else:
+            result.append(running / (idx + 1))
+    return result
+
+
+def plot_counts_of_rain(root_unfilt, root_filt, out):
+    root_filt = Path(root_filt)
+    root_unfilt = Path(root_unfilt)
+    output_path = Path(out)
+
+    def get_count_for_dates(root):
+        jsonl_files = sorted(root.glob("**/sitemap-*.jsonl"))
+        if not jsonl_files:
+            raise SystemExit(f"No JSONL files found under {root}")
+
+        daily_counts = {}
+        for path in jsonl_files:
+            day = date_from_filename(path)
+            daily_counts[day] = count_jsonl_lines(path)
+
+        return daily_counts
+
+    daily_filtered = get_count_for_dates(root_filt)
+    daily_unfiltered = get_count_for_dates(root_unfilt)
+
+    start = min(min(daily_filtered), min(daily_unfiltered))
+    end = max(max(daily_filtered), max(daily_unfiltered))
+    if start > end:
+        raise SystemExit("Start date must be before end date")
+
+    dates = list(daterange(start, end))
+    counts_filtered = [daily_filtered.get(day, 0) for day in dates]
+    counts_unfiltered = [daily_unfiltered.get(day, 0) for day in dates]
+    unfiltered_scale = 10
+    counts_unfiltered_scaled = [value / unfiltered_scale for value in counts_unfiltered]
+    counts_filtered_neg = [-value for value in counts_filtered]
+
+    fig, ax = plt.subplots(figsize=(11, 7.5))
+    ax.set_facecolor("#EAEAF2")
+    ax.axvline(0, color="#333333", linewidth=1.0, alpha=0.6)
+    ax.grid(True, axis="x", alpha=0.25)
+
+    y_positions = list(range(len(dates)))
+    ax.barh(
+        y_positions,
+        counts_filtered_neg,
+        color="#1f77b4",
+        alpha=0.75,
+        height=0.9,
+        label="Filtered",
+    )
+    ax.barh(
+        y_positions,
+        counts_unfiltered_scaled,
+        color="#d62728",
+        alpha=0.75,
+        height=0.9,
+        label=f"Unfiltered (scaled /{unfiltered_scale})",
+    )
+
+    ax.set_title("News Articles per Day (Filtered vs Unfiltered)")
+    ax.set_xlabel("Articles per day (filtered left, unfiltered right)")
+    ax.set_ylabel("Date")
+    ax.legend()
+
+    def format_tick(value, _):
+        value = abs(value)
+        if value.is_integer():
+            return f"{int(value)}"
+        return f"{value:.1f}"
+
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(format_tick))
+
+    step = max(1, len(dates) // 12)
+    ax.set_yticks(y_positions[::step])
+    ax.set_yticklabels([day.isoformat() for day in dates[::step]])
+    ax.invert_yaxis()
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path)
+    plt.show()
+
+    total = sum(counts_filtered)
+    peak = max(counts_filtered) if counts_filtered else 0
+    peak_date = dates[counts_filtered.index(peak)] if counts_filtered else None
+    print(f"Saved plot to {output_path}")
+    print(f"Total articles: {total}")
+    if peak_date:
+        print(f"Peak day: {peak_date} ({peak})")
+
+plot_counts_of_rain(
+        root_unfilt="../data/gulfnews/articles",
+        root_filt="../data/gulfnews/articles.filtered",
+        out="rain-dance/media/gulfnews-articles-per-day.png"
+)
+
+```
