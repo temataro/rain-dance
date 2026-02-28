@@ -364,15 +364,14 @@ def extract_sitemap_urls_to_jsonl(
     return output_path
 ```
 
-<<<<<<< HEAD
-What we end up with is a directory tree full of jsonl files
-```
+`
 data
 └── gulfnews
     └── articles
         ├── 2020-01
         │   ├── sitemap-2020-01-01.jsonl
-```
+`
+
 This process is very slow since we're fetching each url from each day one at a
 time, we can parallelize this process by using threads or asyncio _but_ we
 shouldn't do that wantonly.
@@ -444,7 +443,7 @@ def filter_jsonls(
             continue
         rel = src.relative_to(src_root)
         dst = out_root / rel
-        kept, total, bad = filter_jsonl_file(src, dst, args.field)
+        kept, total, bad = filter_jsonl_file(src, dst, field)
 
         total_files += 1
         total_lines += total
@@ -462,13 +461,9 @@ def filter_jsonls(
 
 Then let's plot
 ```{python}
-#| out-width: "100%"
-#| label:       Occurrence count for articles mentioning rain
-#| fig-cap:     Occurrence count for articles mentioning rain
 #| code-fold: true
 
 from datetime import date, datetime, timedelta
-
 
 
 def parse_date(value):
@@ -514,7 +509,28 @@ def rolling_mean(values, window):
     return result
 
 
-def plot_counts_of_rain(root_unfilt, root_filt, out):
+def aggregate_counts(dates, counts, window_days):
+    if window_days <= 0:
+        raise SystemExit("aggregate_days must be positive")
+    buckets = []
+    bucket_counts = []
+    bucket_start = dates[0]
+    running = 0
+    for day, count in zip(dates, counts):
+        if (day - bucket_start).days >= window_days:
+            buckets.append(bucket_start)
+            bucket_counts.append(running)
+            bucket_start = day
+            running = 0
+        running += count
+    buckets.append(bucket_start)
+    bucket_counts.append(running)
+    return buckets, bucket_counts
+
+
+def plot_counts_of_rain():
+    aggregate_days = 7
+    rolling_window = 4  # in number of bars
     root_filt = Path(root_filt)
     root_unfilt = Path(root_unfilt)
     output_path = Path(out)
@@ -540,18 +556,27 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
         raise SystemExit("Start date must be before end date")
 
     dates = list(daterange(start, end))
-    counts_filtered = [daily_filtered.get(day, 0) for day in dates]
-    counts_unfiltered = [daily_unfiltered.get(day, 0) for day in dates]
-    unfiltered_scale = 10
-    counts_unfiltered_scaled = [value / unfiltered_scale for value in counts_unfiltered]
-    counts_filtered_neg = [-value for value in counts_filtered]
+    counts = [daily_filt.get(day, 0) for day in dates]
+    counts_unfilt = [daily_unfilt.get(day, 0) for day in dates]
 
-    fig, ax = plt.subplots(figsize=(11, 7.5))
-    ax.set_facecolor("#EAEAF2")
+    bucket_dates, counts = aggregate_counts(dates, counts, aggregate_days)
+    _, counts_unfilt = aggregate_counts(dates, counts_unfilt, aggregate_days)
+
+    smoothed = rolling_mean(counts, window=rolling_window)
+    smoothed_unfilt = rolling_mean(counts_unfilt, window=rolling_window)
+
+    unfiltered_scale = 15
+    counts_unfilt_scaled = [value / unfiltered_scale for value in counts_unfilt]
+    counts_filtered_neg = [-value for value in counts]
+    smoothed_filtered_neg = [-value for value in smoothed]
+    smoothed_unfilt_scaled = [value / unfiltered_scale for value in smoothed_unfilt]
+
+    fig, ax = plt.subplots(figsize=(11, 7.5), dpi=180)
+    ax.set_facecolor("#EAEAF2")  # The seaborn background...
     ax.axvline(0, color="#333333", linewidth=1.0, alpha=0.6)
     ax.grid(True, axis="x", alpha=0.25)
 
-    y_positions = list(range(len(dates)))
+    y_positions = list(range(len(bucket_dates)))
     ax.barh(
         y_positions,
         counts_filtered_neg,
@@ -562,16 +587,32 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
     )
     ax.barh(
         y_positions,
-        counts_unfiltered_scaled,
+        counts_unfilt_scaled,
         color="#d62728",
         alpha=0.75,
         height=0.9,
         label=f"Unfiltered (scaled /{unfiltered_scale})",
     )
+    ax.plot(
+        smoothed_filtered_neg,
+        y_positions,
+        color="#6400ff",
+        linewidth=1.6,
+        label=f"Filtered mean ({rolling_window}-bar)",
+    )
+    ax.plot(
+        smoothed_unfilt_scaled,
+        y_positions,
+        color="#ff7f0e",
+        linewidth=1.6,
+        label=f"Unfiltered mean ({rolling_window}-bar)",
+    )
 
-    ax.set_title("News Articles per Day (Filtered vs Unfiltered)")
-    ax.set_xlabel("Articles per day (filtered left, unfiltered right)")
-    ax.set_ylabel("Date")
+    ax.set_title("News Articles per Period (Filtered vs Unfiltered)")
+    ax.set_xlabel(
+        f"Articles per {aggregate_days} days (filtered left, unfiltered right)"
+    )
+    ax.set_ylabel("Period start")
     ax.legend()
 
     def format_tick(value, _):
@@ -582,9 +623,9 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
 
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(format_tick))
 
-    step = max(1, len(dates) // 12)
+    step = max(1, len(bucket_dates) // 12)
     ax.set_yticks(y_positions[::step])
-    ax.set_yticklabels([day.isoformat() for day in dates[::step]])
+    ax.set_yticklabels([day.isoformat() for day in bucket_dates[::step]])
     ax.invert_yaxis()
 
     fig.tight_layout()
@@ -592,13 +633,13 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
     fig.savefig(output_path)
     plt.show()
 
-    total = sum(counts_filtered)
-    peak = max(counts_filtered) if counts_filtered else 0
-    peak_date = dates[counts_filtered.index(peak)] if counts_filtered else None
+    total = sum(counts)
+    peak = max(counts) if counts else 0
+    peak_date = bucket_dates[counts.index(peak)] if counts else None
     print(f"Saved plot to {output_path}")
     print(f"Total articles: {total}")
     if peak_date:
-        print(f"Peak day: {peak_date} ({peak})")
+        print(f"Peak period start: {peak_date} ({peak})")
 
 # plot_counts_of_rain(
 #         root_unfilt="../data/gulfnews/articles",
@@ -607,3 +648,5 @@ def plot_counts_of_rain(root_unfilt, root_filt, out):
 # )  # Not actually running this for the website, data isn't on gh!
 
 ```
+
+![Occurrence count for articles mentioning rain](./media/gulfnews-articles-per-day.png)
