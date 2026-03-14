@@ -208,7 +208,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><img src="./media/ted-mosby.jpg" class="img-fluid"></p>
 <p>I have been here 6 years and I’ve filled in more mm of precipitation from my tears.</p>
 <p>Let’s actually call them out on this: An un-named gulf news source vs the NOAA Climate Data Online historic data summary from Jan.&nbsp;1, 2020 until Aug.&nbsp;24, 2025.</p>
-<div id="9b5f12f3" class="cell" data-execution_count="1">
+<div id="fb065f8d" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
@@ -240,7 +240,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="f2000ef8" class="cell" data-execution_count="2">
+<div id="c43c970e" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Since I can't use a custom local mplstyle file, let's specify all our RC</span></span>
@@ -316,7 +316,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 </div>
 <p>Let’s read this into a dataframe and plot all the times it’s rained in the last 6 years.</p>
-<div id="776ef94c" class="cell" data-execution_count="3">
+<div id="1c167e94" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pl.read_csv(</span>
@@ -360,7 +360,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>:::</p>
 <section id="so-according-to-nasa-how-many-times-has-it-rained-over-the-last-6-ish-years" class="level3">
 <h3 class="anchored" data-anchor-id="so-according-to-nasa-how-many-times-has-it-rained-over-the-last-6-ish-years">SO, according to NASA, how many times has it rained over the last 6-ish years?</h3>
-<div id="44be9c00" class="cell" data-execution_count="5">
+<div id="1f48ff3a" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>rained_days <span class="op">=</span> df.<span class="bu">filter</span>(</span>
@@ -414,7 +414,7 @@ lightning expected to hit the country starting Monday”, “title_matches_keywo
 </div>
 <p>For each url found in the day’s sitemap, we skim the title to see if anything relates to weather. If it does, go to the url and extract the article body to form this jsonl file. The format looks like this:</p>
 <p>The main function in charge of doing this is <code>def extract_sitemap_urls_to_jsonl()</code> in <code>../main.py</code></p>
-<div id="b2ea7295" class="cell" data-execution_count="6">
+<div id="3f54e5e1" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -527,7 +527,7 @@ lightning expected to hit the country starting Monday”, “title_matches_keywo
 <h1>Some Statistics</h1>
 <p>Let’s start with a simple frequency count on how many times rain has been mentioned over this decade. To do this, we’ll first filter out all the JSONL logs to only those that have their <code>title_matches_keywords</code> == true.</p>
 <p>How do we filter? Let’s make a script to take all the jsonl logs and filter them out to leave only the ones with our keywords.</p>
-<div id="e62ffd3f" class="cell" data-execution_count="7">
+<div id="78f2222e" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> iter_jsonl_lines(path):</span>
@@ -599,7 +599,7 @@ lightning expected to hit the country starting Monday”, “title_matches_keywo
 </details>
 </div>
 <p>Then let’s plot</p>
-<div id="adb71f25" class="cell" data-execution_count="8">
+<div id="842f1af0" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> date, datetime, timedelta</span>
